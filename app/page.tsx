@@ -6,11 +6,15 @@ import { WalletDonation } from '@/components/wallet-donation'
 
 export default function Home(): JSX.Element {
   useEffect(() => {
-    // Inform Farcaster that the Mini-App is ready (after render)
     if (typeof window !== 'undefined') {
       const timeout = setTimeout(() => {
-        window.parent?.postMessage({ type: 'ready' }, '*')
-      }, 300) // 300ms delay to ensure rendering is done
+        try {
+          console.log('✅ Sending READY signal to Warpcast')
+          window.parent?.postMessage({ type: 'ready' }, '*')
+        } catch (error) {
+          console.error('❌ Failed to send READY message:', error)
+        }
+      }, 1000)
 
       return () => clearTimeout(timeout)
     }
