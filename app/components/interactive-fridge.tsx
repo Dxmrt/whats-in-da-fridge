@@ -383,7 +383,7 @@ export function InteractiveFridge(): JSX.Element {
         {!isConnected && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
             <p className="text-sm text-blue-700 text-center">
-              🎯 These are demo ingredients. Connect your wallet to have your personal fridge and start with these same ingredients!
+              🎯 These are demo ingredients. Connect your wallet to save your favorite ingredients inside da fridge!
             </p>
           </div>
         )}
@@ -391,7 +391,7 @@ export function InteractiveFridge(): JSX.Element {
         {isConnected && hasInitializedUserIngredients && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
             <p className="text-sm text-green-700 text-center">
-              ✅ Your personal fridge is ready! You started with some ingredients and can add more.
+              ✅ Your fridge is ready with your favorite ingredients!
             </p>
           </div>
         )}

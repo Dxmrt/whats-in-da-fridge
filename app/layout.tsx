@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "What's in da fridge",
     description: "Turn random ingredients into amazing recipes. Interactive fridge with AI-powered recipe suggestions. Built for degens who cook!",
     keywords: ["recipes", "cooking", "fridge", "ingredients", "farcaster", "base", "web3", "degens"],
-    authors: [{ name: "Fridge App Team" }],
+    authors: [{ name: "By douxxiie" }],
     openGraph: {
       title: "What's in da fridge",
       description: "Turn random ingredients into amazing recipes. Built for degens who cook!",
@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
     other: {
       "fc:frame": JSON.stringify({
         version: "next",
-        imageUrl: `${URL}/api/og`,
+        imageUrl: `${URL}/og.png`,
         button: {
           title: "Open Fridge 🧊",
           action: {

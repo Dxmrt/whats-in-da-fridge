@@ -22,7 +22,7 @@ export default function Home(): JSX.Element {
       <div className="absolute top-4 left-4 z-10">
         <WalletDonation compact={true} />
       </div>
-
+      <br />
       <main className="flex min-h-screen flex-col items-center justify-start px-4 py-6">
         {/* Header */}
         <div className="text-center mt-3 mb-2">
