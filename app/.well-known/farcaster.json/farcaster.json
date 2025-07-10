@@ -1,0 +1,22 @@
+
+{
+"frame": {
+      "version": "1",
+      "name": "whats-in-da-fridge",
+      "iconUrl": "https://whats-in-da-fridge.vercel.app/icon.png",
+      "splashImageUrl": "https://whats-in-da-fridge.vercel.app/splash.png",
+      "splashBackgroundColor": "#000000",
+      "homeUrl": "https://whats-in-da-fridge.vercel.app",
+      "webhookUrl": "https://whats-in-da-fridge.vercel.app/api/webhook",
+      "heroImageUrl": "https://whats-in-da-fridge.vercel.app/hero.png",
+      "ogTitle": "whats-in-da-fridge",
+      "ogImageUrl": "https://whats-in-da-fridge.vercel.app/og.png"
+    },
+
+    "accountAssociation": {
+      "header": "eyJmaWQiOjExMDE1ODIsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhCMTc5ODg0Nzk2NWJlODg0MWFERTI4OTkxY0Q0NTQxQmMwNTc1NTAzIn0",
+      "payload": "eyJkb21haW4iOiJ3aGF0cy1pbi1kYS1mcmlkZ2UudmVyY2VsLmFwcCJ9",
+      "signature": "MHg2NjkxNzY2ZGMyNGUyYmNjZDc3YWFhM2RmODA2NDMwY2JlM2JmOTc0NGU4YjIyYTFmMWRkYmU1MjM2NGE4YjhmMzU3Mzg1OWZmMDMwMDE1Y2I0MDQ5YThlYWE5YTgxY2JkMTU0OWZjMzVhM2MzM2FlMWU5YjlmZjk0YTNkOTExYjFj"
+    }
+}
+    
