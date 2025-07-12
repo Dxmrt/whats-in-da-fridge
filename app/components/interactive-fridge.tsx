@@ -46,47 +46,32 @@ const demoRecipes = [
 
 export function InteractiveFridge(): JSX.Element {
   const { address, isConnected } = useAccount()
-  const [isOpen, setIsOpen] = useState<boolean>(false)
-  
-  // Separate state for demo and connected user
+  const connectedAddress = address
+  const isInsideFrame = typeof window !== 'undefined' && window?.frameElement !== null
+
+  const [isOpen, setIsOpen] = useState(false)
+  const [isBlinking, setIsBlinking] = useState(false)
   const [demoIngredients, setDemoIngredients] = useState<Ingredient[]>(initialDemoIngredients)
   const [userIngredients, setUserIngredients] = useState<Ingredient[]>([])
-  const [hasInitializedUserIngredients, setHasInitializedUserIngredients] = useState<boolean>(false)
-  
-  const [newIngredient, setNewIngredient] = useState<string>('')
-  const [showRecipes, setShowRecipes] = useState<boolean>(false)
-  const [isBlinking, setIsBlinking] = useState<boolean>(false)
+  const [hasInitializedUserIngredients, setHasInitializedUserIngredients] = useState(false)
+  const [newIngredient, setNewIngredient] = useState('')
+  const [showRecipes, setShowRecipes] = useState(false)
+
   const { toast } = useToast()
   const audioContextRef = useRef<AudioContext | null>(null)
 
-  // When user connects wallet, copy demo ingredients as starter pack
   useEffect(() => {
     if (isConnected && !hasInitializedUserIngredients) {
       setUserIngredients([...initialDemoIngredients])
       setHasInitializedUserIngredients(true)
       toast({
-        title: "Wallet connected! 🎉",
-        description: "You have some ingredients to start with. Add more if you want!",
-        duration: 4000,
+        title: 'Wallet detected! 🎉',
+        description: 'You have some ingredients to start with. Add more if you want!',
+        duration: 4000
       })
     }
   }, [isConnected, hasInitializedUserIngredients, toast])
 
-  // Function to get current ingredients based on wallet state
-  const getCurrentIngredients = (): Ingredient[] => {
-    return isConnected ? userIngredients : demoIngredients
-  }
-
-  // Function to update ingredients based on wallet state
-  const updateIngredients = (newIngredientsList: Ingredient[]): void => {
-    if (isConnected) {
-      setUserIngredients(newIngredientsList)
-    } else {
-      setDemoIngredients(newIngredientsList)
-    }
-  }
-
-  // Blinking animation
   useEffect(() => {
     const blinkInterval = setInterval(() => {
       setIsBlinking(true)
@@ -96,66 +81,49 @@ export function InteractiveFridge(): JSX.Element {
     return () => clearInterval(blinkInterval)
   }, [])
 
-  const playSound = (frequency: number, duration: number, type: 'open' | 'close' = 'open'): void => {
+  const getCurrentIngredients = () =>
+    isConnected ? userIngredients : demoIngredients
+
+  const updateIngredients = (newList: Ingredient[]) => {
+    if (isConnected) {
+      setUserIngredients(newList)
+    } else {
+      setDemoIngredients(newList)
+    }
+  }
+
+  const toggleFridge = () => {
+    const newState = !isOpen
+    setIsOpen(newState)
+    playSound(newState ? 800 : 400, 0.3, newState ? 'open' : 'close')
+  }
+
+  const playSound = (frequency: number, duration: number, type: 'open' | 'close') => {
     try {
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
       }
-
       const oscillator = audioContextRef.current.createOscillator()
       const gainNode = audioContextRef.current.createGain()
-
       oscillator.connect(gainNode)
       gainNode.connect(audioContextRef.current.destination)
 
       oscillator.frequency.setValueAtTime(frequency, audioContextRef.current.currentTime)
-      
-      if (type === 'open') {
-        oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.5, audioContextRef.current.currentTime + duration)
-      } else {
-        oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.5, audioContextRef.current.currentTime + duration)
-      }
-
+      oscillator.frequency.exponentialRampToValueAtTime(
+        type === 'open' ? frequency * 0.5 : frequency * 1.5,
+        audioContextRef.current.currentTime + duration
+      )
       gainNode.gain.setValueAtTime(0.1, audioContextRef.current.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + duration)
 
       oscillator.start(audioContextRef.current.currentTime)
       oscillator.stop(audioContextRef.current.currentTime + duration)
-    } catch (error) {
+    } catch (e) {
       console.log('Audio not supported')
     }
   }
 
-  const toggleFridge = (): void => {
-    const newState = !isOpen
-    setIsOpen(newState)
-    
-    if (newState) {
-      playSound(800, 0.3, 'open')
-    } else {
-      playSound(400, 0.3, 'close')
-    }
-  }
-
-  const removeIngredient = (ingredientId: string): void => {
-    const currentIngredients = getCurrentIngredients()
-    const updatedIngredients = currentIngredients.filter(ing => ing.id !== ingredientId)
-    updateIngredients(updatedIngredients)
-    
-    if (isConnected) {
-      toast({
-        title: "Ingredient removed from your fridge permanently! 🗑️",
-        duration: 3000,
-      })
-    } else {
-      toast({
-        title: "Ingredient removed from demo. Connect wallet to save changes!",
-        duration: 3000,
-      })
-    }
-  }
-
-  const addIngredient = (): void => {
+  const addIngredient = () => {
     if (!newIngredient.trim()) return
 
     const newIng: Ingredient = {
@@ -165,332 +133,176 @@ export function InteractiveFridge(): JSX.Element {
       category: getCategoryForIngredient(newIngredient.trim())
     }
 
-    const currentIngredients = getCurrentIngredients()
-    updateIngredients([...currentIngredients, newIng])
+    const updated = [...getCurrentIngredients(), newIng]
+    updateIngredients(updated)
     setNewIngredient('')
-    
-    if (isConnected) {
-      toast({
-        title: `${newIngredient} added to your fridge! 🎉`,
-        description: "Saved permanently to your wallet",
-        duration: 3000,
-      })
-    } else {
-      toast({
-        title: `${newIngredient} added to demo! 🎉`,
-        description: "Connect wallet to save permanently",
-        duration: 3000,
-      })
-    }
+    toast({
+      title: `${newIng.name} added to ${isConnected ? 'your fridge' : 'demo'}!`,
+      duration: 3000
+    })
   }
 
-  const generateRecipes = (): void => {
-    setShowRecipes(true)
+  const removeIngredient = (id: string) => {
+    const updated = getCurrentIngredients().filter(i => i.id !== id)
+    updateIngredients(updated)
+    toast({
+      title: isConnected
+        ? 'Ingredient removed permanently 🗑️'
+        : 'Removed from demo. Connect wallet to save changes!',
+      duration: 3000
+    })
   }
 
-  const getIngredientsByCategory = (category: string): Ingredient[] => {
-    const currentIngredients = getCurrentIngredients()
-    return currentIngredients.filter(ing => ing.category === category)
-  }
+  const generateRecipes = () => setShowRecipes(true)
 
-  // Helper function to automatically assign emojis
-  const getEmojiForIngredient = (name: string): string => {
-    const lowerName = name.toLowerCase()
+  const getEmojiForIngredient = (name: string) => {
     const emojiMap: { [key: string]: string } = {
-      'milk': '🥛',
-      'egg': '🥚', 'eggs': '🥚',
-      'tomato': '🍅', 'tomatoes': '🍅',
-      'cheese': '🧀',
-      'lettuce': '🥬',
-      'bread': '🍞',
-      'chicken': '🍗',
-      'fish': '🐟',
-      'rice': '🍚',
-      'pasta': '🍝',
-      'apple': '🍎',
-      'banana': '🍌',
-      'carrot': '🥕',
-      'onion': '🧅',
-      'potato': '🥔',
-      'beef': '🥩',
-      'pork': '🥓',
-      'broccoli': '🥦',
-      'mushroom': '🍄', 'mushrooms': '🍄',
-      'garlic': '🧄',
-      'lemon': '🍋',
-      'orange': '🍊'
+      milk: '🥛',
+      eggs: '🥚',
+      tomato: '🍅',
+      cheese: '🧀',
+      lettuce: '🥬',
+      bread: '🍞',
+      chicken: '🍗',
+      fish: '🐟',
+      rice: '🍚',
+      apple: '🍎',
+      banana: '🍌',
+      carrot: '🥕',
+      onion: '🧅',
+      potato: '🥔'
     }
-    
-    return emojiMap[lowerName] || '🥘'
+    return emojiMap[name.toLowerCase()] || '🥘'
   }
 
-  // Helper function to automatically categorize
-  const getCategoryForIngredient = (name: string): 'dairy' | 'meat' | 'vegetable' | 'other' => {
-    const lowerName = name.toLowerCase()
-    
-    if (['milk', 'cheese', 'yogurt', 'butter', 'cream'].includes(lowerName)) {
-      return 'dairy'
-    }
-    if (['egg', 'eggs', 'chicken', 'fish', 'meat', 'beef', 'pork'].includes(lowerName)) {
-      return 'meat'
-    }
-    if (['lettuce', 'tomato', 'tomatoes', 'carrot', 'onion', 'potato', 'broccoli'].includes(lowerName)) {
-      return 'vegetable'
-    }
+  const getCategoryForIngredient = (name: string): Ingredient['category'] => {
+    const n = name.toLowerCase()
+    if (['milk', 'cheese', 'yogurt'].includes(n)) return 'dairy'
+    if (['eggs', 'meat', 'chicken', 'fish'].includes(n)) return 'meat'
+    if (['lettuce', 'tomato', 'carrot', 'onion', 'potato'].includes(n)) return 'vegetable'
     return 'other'
   }
 
+  const getIngredientsByCategory = (category: Ingredient['category']) =>
+    getCurrentIngredients().filter(i => i.category === category)
+
   return (
     <div className="flex flex-col items-center space-y-6 w-full max-w-4xl mx-auto">
-      {/* Fridge Container */}
+      {!isInsideFrame && connectedAddress && (
+        <p className="text-sm text-gray-500">
+          Connected as {connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}
+        </p>
+      )}
+
       <div className="relative">
         <motion.div
-          className="relative cursor-pointer transform-gpu hover:scale-105 transition-all duration-300 hover:shadow-2xl"
+          className="relative cursor-pointer"
           onClick={toggleFridge}
           whileHover={{ scale: 1.02 }}
-          style={{
-            width: 'min(400px, 90vw)',
-            height: 'min(420px, 60vh)',
-            aspectRatio: '3/4'
-          }}
+          style={{ width: 'min(400px, 90vw)', aspectRatio: '3/4' }}
         >
-          {/* Fridge Body */}
           <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200 rounded-3xl shadow-2xl border-4 border-gray-300 relative overflow-hidden">
-            {/* Cute Face */}
-            <div className="absolute top-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-4">
-              <motion.div
-                className="w-3 h-3 bg-black rounded-full"
-                animate={isBlinking ? { scaleY: 0.1 } : { scaleY: 1 }}
-                transition={{ duration: 0.1 }}
-              />
-              <motion.div
-                className="w-3 h-3 bg-black rounded-full"
-                animate={isBlinking ? { scaleY: 0.1 } : { scaleY: 1 }}
-                transition={{ duration: 0.1 }}
-              />
+            <div className="absolute top-8 left-1/2 transform -translate-x-1/2 flex space-x-4">
+              <motion.div className="w-3 h-3 bg-black rounded-full" animate={{ scaleY: isBlinking ? 0.1 : 1 }} transition={{ duration: 0.1 }} />
+              <motion.div className="w-3 h-3 bg-black rounded-full" animate={{ scaleY: isBlinking ? 0.1 : 1 }} transition={{ duration: 0.1 }} />
             </div>
 
-            {/* Door */}
             <motion.div
               className="absolute inset-2 bg-gradient-to-b from-white to-gray-100 rounded-2xl shadow-inner border border-gray-200"
-              animate={{
-                rotateY: isOpen ? -75 : 0,
-                transformOrigin: 'left center'
-              }}
-              transition={{ duration: 0.6, ease: 'easeInOut' }}
+              animate={{ rotateY: isOpen ? -75 : 0, transformOrigin: 'left center' }}
+              transition={{ duration: 0.6 }}
               style={{ transformStyle: 'preserve-3d' }}
             >
-              {/* Door Handle */}
-              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-3 h-8 bg-gray-400 rounded-full shadow-md" />
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-3 h-8 bg-gray-400 rounded-full" />
             </motion.div>
 
-            {/* Interior (visible when open) */}
             <AnimatePresence>
               {isOpen && (
                 <motion.div
-                  className="absolute inset-2 bg-gradient-to-b from-yellow-50 to-white rounded-2xl shadow-inner"
+                  className="absolute inset-2 bg-yellow-50 rounded-2xl shadow-inner p-4 flex flex-col justify-between"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  {/* LED Light */}
-                  <div className="absolute top-1 left-1/2 transform -translate-x-1/2 w-16 h-2 bg-yellow-200 rounded-full shadow-lg" />
-                  
-                  {/* Shelves with Ingredients */}
-                  <div className="p-4 h-full flex flex-col justify-between">
-                    {/* Top Shelf - Dairy */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-lg p-2 border border-gray-200 min-h-[60px]">
-                      <div className="text-[8px] font-semibold text-gray-600 mb-1">Dairy</div>
+                  {(['dairy', 'meat', 'vegetable'] as const).map((cat) => (
+                    <div key={cat} className="bg-white/80 p-2 rounded-lg border mb-2">
+                      <div className="text-[10px] font-semibold text-gray-600 mb-1 capitalize">{cat}</div>
                       <div className="flex flex-wrap gap-1">
-                        {getIngredientsByCategory('dairy').map((ingredient) => (
+                        {getIngredientsByCategory(cat).map((i) => (
                           <motion.div
-                            key={ingredient.id}
-                            className="bg-white rounded-lg px-2 py-1 border border-gray-200 shadow-sm cursor-pointer hover:bg-red-50 hover:scale-110 transition-all duration-200"
+                            key={i.id}
                             onClick={(e) => {
                               e.stopPropagation()
-                              removeIngredient(ingredient.id)
+                              removeIngredient(i.id)
                             }}
+                            className="bg-white rounded-lg px-2 py-1 border shadow-sm cursor-pointer hover:bg-red-50 hover:scale-110 transition-all duration-200"
                             whileHover={{ scale: 1.1 }}
                           >
-                            <div className="text-lg">{ingredient.emoji}</div>
-                            <div className="text-[8px] font-medium text-center">{ingredient.name}</div>
+                            <div className="text-lg">{i.emoji}</div>
+                            <div className="text-[8px] text-center">{i.name}</div>
                           </motion.div>
                         ))}
                       </div>
                     </div>
-
-                    {/* Middle Shelf - Meat/Other */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-lg p-2 border border-gray-200 min-h-[60px]">
-                      <div className="text-[8px] font-semibold text-gray-600 mb-1">Protein</div>
-                      <div className="flex flex-wrap gap-1">
-                        {getIngredientsByCategory('meat').concat(getIngredientsByCategory('other')).map((ingredient) => (
-                          <motion.div
-                            key={ingredient.id}
-                            className="bg-white rounded-lg px-2 py-1 border border-gray-200 shadow-sm cursor-pointer hover:bg-red-50 hover:scale-110 transition-all duration-200"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              removeIngredient(ingredient.id)
-                            }}
-                            whileHover={{ scale: 1.1 }}
-                          >
-                            <div className="text-lg">{ingredient.emoji}</div>
-                            <div className="text-[8px] font-medium text-center">{ingredient.name}</div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Bottom Crisper - Vegetables */}
-                    <div className="bg-green-50/80 backdrop-blur-sm rounded-lg p-2 border border-green-200 min-h-[60px]">
-                      <div className="text-[8px] font-semibold text-green-700 mb-1">Fresh</div>
-                      <div className="flex flex-wrap gap-1">
-                        {getIngredientsByCategory('vegetable').map((ingredient) => (
-                          <motion.div
-                            key={ingredient.id}
-                            className="bg-white rounded-lg px-2 py-1 border border-green-200 shadow-sm cursor-pointer hover:bg-red-50 hover:scale-110 transition-all duration-200"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              removeIngredient(ingredient.id)
-                            }}
-                            whileHover={{ scale: 1.1 }}
-                          >
-                            <div className="text-lg">{ingredient.emoji}</div>
-                            <div className="text-[8px] font-medium text-center">{ingredient.name}</div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </motion.div>
-
         <p className="text-center text-sm text-gray-600 mt-4">
           {isOpen ? 'Click ingredients inside to remove them!' : 'Click the fridge to open it! 👆'}
         </p>
       </div>
 
-      {/* Your Ingredients Section */}
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
-          {isConnected ? 'Your Personal Fridge' : 'Demo Ingredients'}
-        </h3>
-        
-        {/* Explanatory message */}
-        {!isConnected && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-700 text-center">
-              🎯 These are demo ingredients. Connect your wallet to save your favorite ingredients inside da fridge!
-            </p>
-          </div>
-        )}
-        
-        {isConnected && hasInitializedUserIngredients && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-green-700 text-center">
-              ✅ Your fridge is ready with your favorite ingredients!
-            </p>
-          </div>
-        )}
-        
-       {/* Add Ingredient Section */}
-<div className="mb-4 flex gap-2">
-  <input
-    type="text"
-    value={newIngredient}
-    onChange={(e) => setNewIngredient(e.target.value)}
-    placeholder={isConnected ? "Add ingredient to your fridge..." : "Add ingredient (demo)..."}
-    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 hover:border-gray-400 text-black"
-    onKeyPress={(e) => e.key === 'Enter' && addIngredient()}
-  />
-  <button
-    onClick={addIngredient}
-    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transform hover:scale-105 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
-  >
-    {isConnected ? 'Add' : 'Add (Demo)'}
-  </button>
-</div>
-
-
-        {/* Ingredients Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-          {getCurrentIngredients().map((ingredient) => (
-            <div
-              key={ingredient.id}
-              className="bg-gray-50 rounded-lg p-3 text-center border border-gray-200 hover:bg-gray-100 transition-colors duration-200 relative group"
-            >
-              <div className="text-2xl mb-1">{ingredient.emoji}</div>
-              <div className="text-sm font-medium text-gray-700">{ingredient.name}</div>
-              
-              {/* Show badge if it's an original ingredient */}
-              {initialDemoIngredients.some(demo => demo.name === ingredient.name) && isConnected && (
-                <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  ✓
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Stats */}
-        <div className="text-center text-sm text-gray-500 mb-4">
-          {getCurrentIngredients().length} ingredients in your fridge
-        </div>
-
-        {/* Recipe Ideas Button */}
-        <div className="text-center">
-          <button
-            onClick={generateRecipes}
-            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
-          >
-            Based chef cooking... 👨‍🍳
-          </button>
-        </div>
+      <div className="w-full max-w-md flex gap-2">
+        <input
+          value={newIngredient}
+          onChange={(e) => setNewIngredient(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && addIngredient()}
+          placeholder="Add ingredient..."
+          className="flex-1 px-4 py-2 border rounded-lg text-black"
+        />
+        <button onClick={addIngredient} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+          Add
+        </button>
       </div>
 
-      {/* Recipe Suggestions */}
+      <button
+        onClick={generateRecipes}
+        className="mt-4 px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-lg hover:scale-105 transition"
+      >
+        Based chef cooking... 👨‍🍳
+      </button>
+
       <AnimatePresence>
         {showRecipes && (
           <motion.div
-            className="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-6 border border-gray-200"
+            className="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-6 border border-gray-200 mt-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
           >
             <h3 className="text-2xl font-bold text-blue-800 mb-6 text-center">Recipe Ideas</h3>
-            
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {demoRecipes.map((recipe, index) => (
+              {demoRecipes.map((r, i) => (
                 <motion.div
-                  key={index}
-                  className="bg-blue-50 rounded-xl p-4 border border-blue-200 hover:bg-blue-100 transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  key={i}
+                  className="bg-blue-50 rounded-xl p-4 border hover:bg-blue-100 transition hover:scale-105 shadow-md"
                 >
-                  <h4 className="font-bold text-blue-900 text-lg mb-2">{recipe.name}</h4>
-                  <p className="text-blue-700 text-sm mb-3">{recipe.instructions}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                      {recipe.prepTime}
-                    </span>
-                    <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                      {recipe.difficulty}
-                    </span>
+                  <h4 className="font-bold text-blue-900 text-lg mb-2">{r.name}</h4>
+                  <p className="text-blue-700 text-sm mb-3">{r.instructions}</p>
+                  <div className="flex justify-between">
+                    <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">{r.prepTime}</span>
+                    <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">{r.difficulty}</span>
                   </div>
                 </motion.div>
               ))}
             </div>
-
             <div className="text-center mt-6">
-              <button
-                onClick={() => setShowRecipes(false)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-              >
+              <button onClick={() => setShowRecipes(false)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                 Close Recipes
               </button>
             </div>

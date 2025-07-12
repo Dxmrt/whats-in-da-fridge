@@ -3,8 +3,11 @@
 import { useEffect } from 'react'
 import { InteractiveFridge } from '@/components/interactive-fridge'
 import { WalletDonation } from '@/components/wallet-donation'
+import { useAccount } from 'wagmi'
 
 export default function Home(): JSX.Element {
+  const { isConnected } = useAccount()
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const timeout = setTimeout(() => {
@@ -22,10 +25,13 @@ export default function Home(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
-      {/* Top-left wallet connection */}
-      <div className="absolute top-4 left-4 z-10">
-        <WalletDonation compact={true} />
-      </div>
+      {/* Top-left wallet connection (solo si NO está conectada) */}
+      {!isConnected && (
+        <div className="absolute top-4 left-4 z-10">
+          <WalletDonation compact={true} />
+        </div>
+      )}
+
       <br />
       <main className="flex min-h-screen flex-col items-center justify-start px-4 py-6">
         {/* Header */}

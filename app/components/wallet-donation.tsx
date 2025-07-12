@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Wallet } from 'lucide-react'
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { useSendTransaction } from 'wagmi'
+import {
+  useAccount,
+  useConnect,
+  useSendTransaction
+} from 'wagmi'
 import { parseEther } from 'viem'
 
 interface WalletDonationProps {
@@ -14,22 +17,33 @@ interface WalletDonationProps {
 export function WalletDonation({ compact = false }: WalletDonationProps): JSX.Element {
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
-  const { disconnect } = useDisconnect()
-  const { sendTransaction, isPending } = useSendTransaction()
-  
-  const [donationAmount, setDonationAmount] = useState<string>('')
-  const [isDonating, setIsDonating] = useState<boolean>(false)
+  const { sendTransactionAsync, isPending } = useSendTransaction()
+
+  const [isDonating, setIsDonating] = useState(false)
+  const [showThanks, setShowThanks] = useState(false)
 
   const connectWallet = async (): Promise<void> => {
     try {
-      // Use the first available connector (usually injected/MetaMask)
       const connector = connectors[0]
       if (connector) {
-        connect({ connector })
+        await connect({ connector })
       }
     } catch (error) {
       console.error('Wallet connection failed:', error)
     }
+  }
+
+  const playSound = () => {
+    const ctx = new AudioContext()
+    const o = ctx.createOscillator()
+    const g = ctx.createGain()
+    o.type = 'sine'
+    o.frequency.setValueAtTime(880, ctx.currentTime)
+    g.gain.setValueAtTime(0.1, ctx.currentTime)
+    o.connect(g)
+    g.connect(ctx.destination)
+    o.start()
+    o.stop(ctx.currentTime + 0.2)
   }
 
   const makeDonation = async (amount: string): Promise<void> => {
@@ -40,13 +54,14 @@ export function WalletDonation({ compact = false }: WalletDonationProps): JSX.El
 
     setIsDonating(true)
     try {
-      const result = await sendTransaction({
-        to: '0x742d35Cc6634C0532925a3b8D87C4F8d30d6BF95', // Replace with your donation address
-        value: parseEther(amount),
+      const tx = await sendTransactionAsync({
+        to: '0x3f9B873aC41E33054e6aF55221aA0e5aFf8d72EC',
+        value: parseEther(amount)
       })
-      
-      console.log('Donation transaction:', result)
-      alert(`Thank you for your ${amount} ETH donation! 🙏`)
+      console.log('Donation TX sent:', tx)
+      playSound()
+      setShowThanks(true)
+      setTimeout(() => setShowThanks(false), 3000)
     } catch (error) {
       console.error('Donation failed:', error)
       alert('Donation failed. Please try again.')
@@ -76,15 +91,12 @@ export function WalletDonation({ compact = false }: WalletDonationProps): JSX.El
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
+    <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200 relative overflow-hidden">
       <div className="text-center mb-6">
         <div className="text-4xl mb-2">🥰</div>
         <h3 className="text-xl font-bold text-gray-800 mb-2">Loving this app?</h3>
         <p className="text-gray-600">
           If this helped you discover a tasty recipe, consider buying us a coffee! ☕
-        </p>
-        <p className="text-sm text-gray-500 mt-2">
-          💳 Connect your wallet above to show some love!
         </p>
       </div>
 
@@ -109,42 +121,23 @@ export function WalletDonation({ compact = false }: WalletDonationProps): JSX.El
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {['0.001', '0.005', '0.01'].map((amount) => (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 justify-center">
+            {['0.0003', '0.0006'].map((eth) => (
               <motion.button
-                key={amount}
-                onClick={() => makeDonation(amount)}
+                key={eth}
+                onClick={() => makeDonation(eth)}
                 disabled={isDonating || isPending}
                 className="px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {amount} ETH
+                {eth} ETH
               </motion.button>
             ))}
-            <div className="flex">
-              <input
-                type="number"
-                step="0.001"
-                placeholder="Custom"
-                value={donationAmount}
-                onChange={(e) => setDonationAmount(e.target.value)}
-                className="flex-1 px-3 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-              />
-              <motion.button
-                onClick={() => makeDonation(donationAmount)}
-                disabled={isDonating || isPending || !donationAmount}
-                className="px-4 py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-r-lg font-medium hover:from-green-600 hover:to-blue-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {isDonating || isPending ? '...' : 'Send'}
-              </motion.button>
-            </div>
           </div>
 
           {(isDonating || isPending) && (
-            <div className="text-center">
+            <div className="text-center mt-2">
               <div className="inline-flex items-center gap-2 text-blue-600">
                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 Processing donation...
@@ -153,6 +146,20 @@ export function WalletDonation({ compact = false }: WalletDonationProps): JSX.El
           )}
         </div>
       )}
+
+      <AnimatePresence>
+        {showThanks && (
+          <motion.div
+            className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-pink-100 border border-pink-300 px-6 py-2 rounded-xl text-pink-700 font-semibold shadow-md"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.4 }}
+          >
+            ❤️ Thank you for your donation!
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
