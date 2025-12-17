@@ -1,26 +1,30 @@
 {
-  "id": "whats-in-da-fridge",
+  "baseBuilder": {
+    "ownerAddress":  [
+      "0xEB94358F4A8932Eed925CBc1d39132A573Dd34E2"
+    ]   
+  },
   "frame": {
     "version": "1",
     "name": "Whats in da fridge",
-    "iconUrl": "https://whats-in-da-fridge.vercel.app/icon.png",
-    "splashImageUrl": "https://whats-in-da-fridge.vercel.app/splash.png",
+    "iconUrl": "https://whatsindafridge.vercel.app/icon.png",
+    "splashImageUrl": "https://whatsindafridge.vercel.app/splash.png",
     "splashBackgroundColor": "#000000",
-    "homeUrl": "https://whats-in-da-fridge.vercel.app",
-    "webhookUrl": "https://whats-in-da-fridge.vercel.app/api/webhook",
-    "heroImageUrl": "https://whats-in-da-fridge.vercel.app/hero.png",
+    "homeUrl": "https://whatsindafridge.vercel.app",
+    "webhookUrl": "https://whatsindafridge.vercel.app/api/webhook",
+    "heroImageUrl": "https://whatsindafridge.vercel.app/hero.png",
     "ogTitle": "Whats in da fridge",
-    "ogImageUrl": "https://whats-in-da-fridge.vercel.app/og.png",
-    "imageUrl": "https://whats-in-da-fridge.vercel.app/og.png",
+    "ogImageUrl": "https://whatsindafridge.vercel.app/og.png",
+    "imageUrl": "https://whatsindafridge.vercel.app/og.png",
     "buttonTitle": "Open Fridge 🧊",
     "subtitle": "AI-powered recipe suggestions",
     "description": "Turn your ingredients into fun, creative meals with the magic of Web3 cooking.",
     "screenshotUrls": [
-      "https://whats-in-da-fridge.vercel.app/hero.png"
+      "https://whatsindafridge.vercel.app/hero.png"
     ],
     "primaryCategory": "utility",
     "tagline": "Built for degens who cook 🍳",
-    "application": "https://whats-in-da-fridge.vercel.app"
+    "application": "https://whatsindafridge.vercel.app"
   },
   "accountAssociation": {
     "header": "eyJmaWQiOjExMDE1ODIsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhCMTc5ODg0Nzk2NWJlODg0MWFERTI4OTkxY0Q0NTQxQmMwNTc1NTAzIn0",
